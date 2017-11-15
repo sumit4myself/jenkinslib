@@ -16,6 +16,26 @@ mkdir -p ./Incremental_logs
 echo "*************************************************"  
 
 
+read id name <<< $(
+	PGPASSWORD=postgres
+	psql \
+    -X \
+    -U postgres \
+    -h localhost \
+    -d esycation_admin \
+    --single-transaction \
+    --set ON_ERROR_STOP=on \
+    --no-align \
+    -t \
+    --field-separator ' ' \
+    --quiet \
+    -c "select id, full_name from users where id = 1")
+
+	echo "username: $id, name: $name"
+
+
+
+
 checkversion=`mysql -uroot -p$rootpsw --host=$db_host_ip --port=$port_number -s -N -e "select count(1) from information_schema.tables where table_schema = '$db_avs' and table_name ='avs_version'"  2> ./Incremental_logs/log-incremental.log `
 
 	if [ $checkversion -eq 0 ]
@@ -85,9 +105,28 @@ do
 	        
 					echo "** executing script $nomefile ...           **"			
 					mysql --user=root --password=$rootpsw --port=$port_number --host=$db_host_ip $db_avs --batch < $nomefile 2> ../Incremental_logs/log-incremental.log
-					 
+
+
+					psql \
+						-X \
+						-U user \
+						-h $DBHOST \
+						-f /path/to/sql/file.sql \
+						--echo-all \
+						--set AUTOCOMMIT=off \
+						--set ON_ERROR_STOP=on \
+						--set TSUFF=$TSUFF \
+						--set QTSTUFF=\'$TSUFF\' \
+						mydatabase
+
+
 					 if  [ $? -eq 0 ]
 					  then
+
+
+						$PSQL -X -U $PROD_USER -h myhost -P t -P format=unaligned $PROD_DB -c "select max(id) from users"
+
+					  
 					  mysql -u root -p$rootpsw --host=$db_host_ip --port=$port_number -e "update $db_avs.avs_version set avs_last_incremental = $X where avs_release = '$avs_release'" 2> ../Incremental_logs/log-incremental.log 
 					  mysql -u root -p$rootpsw --host=$db_host_ip --port=$port_number -e "update $db_avs.avs_version set avs_start_incremental = $maxseq -1 where avs_release = '$avs_release'" 2> ../Incremental_logs/log-incremental.log
 					  echo "** $nomefile successfully                   **"	
