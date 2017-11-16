@@ -5,7 +5,7 @@ releaseVersion=$2
 logDir='./logs'
 mkdir -p $logDir
 
-if  [ $1 -eq 'prod' ]
+if  [ $1 -ne 'prod' ]
     then
     databseName=$releaseType 
     databseName+='_'
@@ -36,18 +36,23 @@ set -u
 
 # Set these environmental variables to override them,
 # but they have safe defaults.
-export PGHOST=${PGHOST-localhost}
+export PGHOST=${host-localhost}
 export PGPORT=${port_number-5432}
 export PGDATABASE=${db}
 export PGUSER=${db_user_name-postgres}
 export PGPASSWORD=${db_password-postgres}
 
+
 echo "** Getting Version Details **"
 RUN_PSQL="psql -X --set AUTOCOMMIT=off --set ON_ERROR_STOP=on -L $logFileName "
-read start_incremental last_incremental <<< $($RUN_PSQL --no-align  -t --field-separator ' ' --quiet -c "select start_incremental, last_incremental from version where id = 1") 2> $logFileName 
+read build_nember update_date start_incremental last_incremental <<< $($RUN_PSQL --no-align  -t --field-separator ' ' --quiet -c "select build_nember, update_date, start_incremental, last_incremental from version") 2> $logFileName 
 
-echo "The value of last_incremental in table VERSION is $last_incremental"
 
+echo "**  ** ** ** ** ** ** ** ** ** ** ** ** ** **"
+echo "** Last build number  [ $build_nember ]    **"
+echo "** Last build deployed on [ $update_date ] **"
+echo "** Last incremental [ $last_incremental ]  **"
+echo "** **  ** ** ** ** ** ** ** ** ** ** ** ** **"
 
 cd Incremental	
 fixstring=incr.sql
@@ -81,16 +86,16 @@ do
 				$RUN_PSQL -f $nomefile 2> $logFileName
 					 if  [ $? -eq 0 ]
 					  then
-							$RUN_PSQL --no-align  -t --field-separator ' ' --quiet -c "update avs_version set last_incremental = $X where avs_release = '$avs_release'" 2> .$logFileName
-							$RUN_PSQL --no-align  -t --field-separator ' ' --quiet -c "update avs_version set start_incremental = $maxseq -1 where avs_release = '$avs_release'" 2> .$logFileName
+							$RUN_PSQL --no-align  -t --field-separator ' ' --quiet -c "update version set last_incremental = $X " 2> .$logFileName
+							$RUN_PSQL --no-align  -t --field-separator ' ' --quiet -c "update version set start_incremental = $maxseq -1" 2> .$logFileName
 							echo "** $nomefile successfully                   **"	
-							echo "**                                             **"
+							echo "**                                          **"
 					 else
 							echo "** FAILED : Error during script $nomefile   **"
-							echo "**                                             **"
-							echo "** PROCEDURE ABORTED                           **"
-					  		maxseq2=`mysql -uroot -p$rootpsw --host=$db_host_ip --port=$port_number -s -N -e "select avs_last_incremental from $db_avs.avs_version where avs_release = '$avs_release'"  2>/dev/null` 
-					  		printf -v filenameok1 "%03d" $maxseq
+							echo "**                                          **"
+							echo "** PROCEDURE ABORTED                        **"
+					  		read maxseq2 <<< $($RUN_PSQL --no-align  -t --field-separator ' ' --quiet -c "select last_incremental from version") 2>/dev/null 
+							printf -v filenameok1 "%03d" $maxseq
 							printf -v filenameok2 "%03d" $maxseq2
 
 					  ##echo "Are succesfully executed only the files from $filenameok1$fixfilename  to $filenameok2$fixfilename"
