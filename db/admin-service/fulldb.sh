@@ -1,29 +1,111 @@
 #!/bin/bash
 source ./init.cfg
+
 releaseType=$1
-databseName = $releaseType_$db
+releaseVersion=$2
+logDir='./logs'
+mkdir -p $logDir
 
-echo "** Staring full db setup for Database [ $databseName ] Release Type [ $releaseType ]  **"
-    
-    
+if  [ $1 -eq 'prod' ]
+    then
+    databseName=$releaseType 
+    databseName+='_'
+fi
 
-mysql -u root -p$rootpsw -h$db_host_ip --port=$port_number  -e "select CONCAT('DROP USER ',GRANTEE,' ;') from information_schema.USER_PRIVILEGES where GRANTEE like '''$db_user_name''@%' " --silent --raw > delete_user_temp.sql
+databseName+=$db
 
-mysql -u root -h$db_host_ip -p$rootpsw --port=$port_number < delete_user_temp.sql
+logFileName=$logDir
+logFileName+='/'
+logFileName+=$releaseType
+logFileName+='_'
+logFileName+=$releaseVersion
+logFileName+='.log'
 
-mysql -uroot -h$db_host_ip -p$rootpsw --port=$port_number <<EOF
+outputFileName=$logDir
+outputFileName+='/'
+outputFileName+=$releaseType
+outputFileName+='_'
+outputFileName+=$releaseVersion
+outputFileName+='.out'
 
-DROP DATABASE IF EXISTS $db_avs ;
 
-CREATE DATABASE $db_avs CHARACTER SET utf8 COLLATE utf8_bin;
+echo "** Staring full db setup for Database [ Host [$host_name], Database [$databseName] ]  **"
+echo "** Writing output [ $outputFileName ]  **"
+echo "** Writing log [ $logFileName ]  **"
 
-CREATE USER "$db_user_name"@"$host_name" IDENTIFIED BY "$db_password";
+set -e
+set -u
 
-GRANT ALL PRIVILEGES ON $db_avs.* TO "$db_user_name"@"$host_name" IDENTIFIED BY "$db_password" ;
+# Set these environmental variables to override them,
+# but they have safe defaults.
+export PGHOST=${PGHOST-localhost}
+export PGPORT=${port_number-5432}
+export PGDATABASE=${db}
+export PGUSER=${db_user_name-postgres}
+export PGPASSWORD=${db_password-postgres}
 
-GRANT ALL PRIVILEGES ON $db_avs.* TO "$db_user_name"@'$db_host_ip' IDENTIFIED BY "$db_password" ;
-use $db_avs;
-SOURCE Full/Software_Build_All.sql;
-EOF
+RUN_PSQL="psql -X --set AUTOCOMMIT=on --set ON_ERROR_STOP=on -o $outputFileName"
 
-rm delete_user_temp.sql
+echo "** Running Configuration scripts **"
+$RUN_PSQL -f ./Configuration/configuration.sql 2> $logFileName
+
+if  [ $? -eq 0 ]
+    then
+        echo "** Commit Transaction for congigurations **"
+    else
+        echo "** FAILED : Error during script configuration.sql   **"					   
+    exit 1
+fi
+
+echo "** Running Tables scripts  **"
+$RUN_PSQL -f ./Full/Tables/table.sql 2> $logFileName
+
+if  [ $? -eq 0 ]
+    then
+        echo "** Commit Transaction for congigurations **"
+    else
+        echo "** FAILED : Error during script table.sql   **"					   
+    exit 1
+fi
+
+echo "** Running Indexes scripts  **"
+$RUN_PSQL -f ./Full/Indexes/index.sql 2> $logFileName
+
+
+if  [ $? -eq 0 ]
+    then
+        echo "** Commit Transaction for congigurations **"
+    else
+        echo "** FAILED : Error during script index.sql   **"					   
+    exit 1
+fi
+
+
+echo "** Running Function scripts  **"
+$RUN_PSQL -f ./Full/Functions/function.sql 2> $logFileName
+
+
+if  [ $? -eq 0 ]
+    then
+        echo "** Commit Transaction for congigurations **"
+    else
+        echo "** FAILED : Error during script function.sql   **"					   
+    exit 1
+fi
+
+
+
+echo "** Running Data scripts  **"
+$RUN_PSQL -f ./Full/Data/data.sql 2> $logFileName
+
+if  [ $? -eq 0 ]
+    then
+        echo "** Commit Transaction for congigurations **"
+    else
+        echo "** FAILED : Error during script data.sql   **"					   
+    exit 1
+fi
+
+
+
+
