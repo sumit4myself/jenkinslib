@@ -98,23 +98,23 @@ def call(body) {
                 }
             }
 
-            stage("Archive") {
+            stage("Copy To Apcahe Location") {
                 if (RELEASE.toBoolean()) {
                     archiveArtifacts artifacts: "${commonsScriptsDir}/temp/*.zip"
                 } else {
                     currentBuild.result = "SUCCESS"
                 }
             }
-            
-            stage("Store on Nexus") {
+
+            stage("Execute DB Script") {
                 if (RELEASE.toBoolean()) {
-                    storeZipPackageOnNexus(commonsScriptsDir, env.JOB_NAME, ReleaseNumber, pom.groupId, pom.artifactId, packageType, pom.version)
+                    archiveArtifacts artifacts: "${commonsScriptsDir}/temp/*.zip"
                 } else {
                     currentBuild.result = "SUCCESS"
                 }
-            }
+            }        
 
-            stage('Hot Deploy') {
+            stage('Deploy') {
                 if (RELEASE.toBoolean() && HOT_DEPLOY.toBoolean() && TEST_SERVER != "") {
                     hotDeploy(TEST_SERVER, pom.groupId, pom.artifactId, packageType, pom.version, versionInfo.major, config.moduleDir)
                 } else {
@@ -122,7 +122,7 @@ def call(body) {
                 }
             }
 
-            stage('Unit Testing on Dev') {
+            stage('Unit Testing') {
                 if (RELEASE.toBoolean() && UNIT_TEST.toBoolean() && TEST_SERVER != "") {
                     unitTest(config.moduleDir, commonsScriptsDir, TEST_SERVER)
                 } else {
