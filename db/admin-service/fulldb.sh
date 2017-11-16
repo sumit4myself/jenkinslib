@@ -10,7 +10,6 @@ if [  -z "$1" ] || [  -z "$2" ]
     exit 1
 fi
 
-
 logDir='./logs'
 mkdir -p $logDir
 
@@ -100,6 +99,27 @@ if  [ $executionResult -eq 0 ]
     exit 1
 fi
 
+echo "** Running Data scripts  **"
+$RUN_PSQL -f ./Full/Data/data.sql 2> $logFileName
+$executionResult=$?
+if  [ $executionResult -eq 0 ]
+    then
+        echo "** Data scripts sucessfully executed. **"
+    else
+        echo "** FAILED : Error during script data.sql **"						   
+    exit 1
+fi
+
+echo "** Running Permission scripts  **"
+$RUN_PSQL -f ./Full/Permission/permission.sql 2> $logFileName
+$executionResult=$?
+if  [ $executionResult -eq 0 ]
+    then
+        echo "** Permission scripts sucessfully executed. **"
+    else
+        echo "** FAILED : Error during script permission.sql **"						   
+    exit 1
+fi
 
 
 
