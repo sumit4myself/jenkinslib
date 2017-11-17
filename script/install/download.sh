@@ -1,4 +1,11 @@
 #!/bin/bash
-wget -O /dev/null --keep-session-cookies --save-cookies cookies.txt --post-data 'j_username=jenkins&j_password=jenkins' http://192.168.7.200:8080/j_acegi_security_check
-wget --load-cookies cookies.txt $1
-rm -f cookies.txt
+fileName=$1
+
+if [  -z "fileName" ]
+  then
+    echo "FileName must be supplied. eg: [ ./download.sh admin_service_dev_1.1.zip] "
+    exit 1
+fi
+echo "Downloading file [$fileName]"
+
+wget -O /dev/null http://build.educoresystems.com/builds/$fileName

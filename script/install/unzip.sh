@@ -8,34 +8,20 @@ cd tmp
 pwd
 unzip ${BASEDIR}/../$2
 
-mkdir -p ${BASEDIR}/config ${BASEDIR}/executable ${BASEDIR}/lib ${BASEDIR}/log
+mkdir -p ${BASEDIR}/dist ${BASEDIR}/db ${BASEDIR}/log
 
-if [ -f lib/*.zip ]
+if [ -f db/*.zip ]
 then
-  unzip lib/*.zip -d ${BASEDIR}
-fi
-
-if [ -f exe/*.zip ]
-then
-  unzip exe/*.zip -d ${BASEDIR}
-  cp -r ${BASEDIR}/exe/* ${BASEDIR}/executable
-fi
-
-if [ -f conf/*.zip ]
-then
-  unzip conf/*.zip -d ${BASEDIR}
-  cp -r ${BASEDIR}/conf/* ${BASEDIR}/config
+  unzip db/*.zip -d ${BASEDIR}
 fi
 
 if [ -f dist/*.zip ]
 then
   unzip dist/*.zip -d ${BASEDIR}
-  cp -r ${BASEDIR}/dist/* ${BASEDIR}/lib
+  cp -r ${BASEDIR}/dist/* ${BASEDIR}/dist
 fi
 
 rm -rf ${BASEDIR}/dist
-rm -rf ${BASEDIR}/conf
-rm -rf ${BASEDIR}/exe
-rm -rf ${BASEDIR}/tmp
+rm -rf ${BASEDIR}/db
 
-chmod +x ${BASEDIR}/executable/*
+chmod +x ${BASEDIR}/dist/*
