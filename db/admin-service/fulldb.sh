@@ -1,47 +1,27 @@
 #!/bin/bash
 source ./init.cfg
+set -e
+set -u
 
-releaseType=$1
-releaseVersion=$2
+BUILD_NUMBER=$1
+BUILD_TYPE=$2
 
 if [  -z "$1" ] || [  -z "$2" ]
   then
-    echo "ReleaseType and ReleaseVersion must be supplied eg: [ ./fulldb.sh cloud 1.1] "
+    echo "Build Number and build type must be supplied eg: [ ./fulldb.sh admin_service_cloud_1.1 dev] "
     exit 1
 fi
 
-logDir='./logs'
-mkdir -p $logDir
-
-if  [ $1 -eq 'prod' ]
+databseName='';
+if  [ $BUILD_TYPE -ne 'prod' ]
     then
-    databseName=$releaseType 
+    databseName=$BUILD_TYPE 
     databseName+='_'
 fi
-
 databseName+=$db
 
-logFileName=$logDir
-logFileName+='/'
-logFileName+=$releaseType
-logFileName+='_'
-logFileName+=$releaseVersion
-logFileName+='.log'
-
-outputFileName=$logDir
-outputFileName+='/'
-outputFileName+=$releaseType
-outputFileName+='_'
-outputFileName+=$releaseVersion
-outputFileName+='.out'
-
-
-echo "** Staring full db setup for Database [ Host [$host_name], Database [$databseName] ]  **"
-echo "** Writing output [ $outputFileName ]  **"
-echo "** Writing log [ $logFileName ]  **"
-
-set -e
-set -u
+echo "** Staring full db setup for Database [ Host [$host], Database [$databseName] ]  **"
+echo "** Info [ Build Number [$BUILD_NUMBER], Build Type [$BUILD_TYPE] ]  **"
 
 # Set these environmental variables to override them,
 # but they have safe defaults.
@@ -51,11 +31,11 @@ export PGDATABASE=${db}
 export PGUSER=${db_user_name-postgres}
 export PGPASSWORD=${db_password-postgres}
 
-RUN_PSQL="psql -X --set AUTOCOMMIT=on --set ON_ERROR_STOP=on -o $outputFileName"
+RUN_PSQL="psql -X --set AUTOCOMMIT=on --set ON_ERROR_STOP=on --echo-all "
 
 echo "** Running Tables scripts  **"
-$RUN_PSQL -f ./Full/Tables/table.sql 2> $logFileName
-$executionResult=$?
+$RUN_PSQL -f ./Full/Tables/table.sql
+executionResult=$?
 if  [ $executionResult -eq 0 ]
     then
         echo "** Configuration scripts sucessfully executed. **"
@@ -65,32 +45,32 @@ if  [ $executionResult -eq 0 ]
 fi
 
 echo "** Running Indexes scripts  **"
-$RUN_PSQL -f ./Full/Indexes/index.sql 2> $logFileName
-$executionResult=$?
+$RUN_PSQL -f ./Full/Indexes/index.sql
+executionResult=$?
 if  [ $executionResult -eq 0 ]
     then
         echo "** Configuration scripts sucessfully executed. **"
     else
-        echo "** FAILED : Error during script configuration.sql **"					   
+        echo "** FAILED : Error during script index.sql **"					   
     exit 1
 fi
 
 
 echo "** Running Function scripts  **"
-$RUN_PSQL -f ./Full/Functions/function.sql 2> $logFileName
-$executionResult=$?
+$RUN_PSQL -f ./Full/Functions/function.sql
+executionResult=$?
 if  [ $executionResult -eq 0 ]
     then
         echo "** Configuration scripts sucessfully executed. **"
     else
-        echo "** FAILED : Error during script configuration.sql **"					   
+        echo "** FAILED : Error during script function.sql **"					   
     exit 1
 fi
 
 
 echo "** Running Data scripts  **"
-$RUN_PSQL -f ./Full/Data/data.sql 2> $logFileName
-$executionResult=$?
+$RUN_PSQL -f ./Full/Data/data.sql
+executionResult=$?
 if  [ $executionResult -eq 0 ]
     then
         echo "** Data scripts sucessfully executed. **"
@@ -100,8 +80,8 @@ if  [ $executionResult -eq 0 ]
 fi
 
 echo "** Running Data scripts  **"
-$RUN_PSQL -f ./Full/Data/data.sql 2> $logFileName
-$executionResult=$?
+$RUN_PSQL -f ./Full/Data/data.sql
+executionResult=$?
 if  [ $executionResult -eq 0 ]
     then
         echo "** Data scripts sucessfully executed. **"
@@ -111,8 +91,8 @@ if  [ $executionResult -eq 0 ]
 fi
 
 echo "** Running Permission scripts  **"
-$RUN_PSQL -f ./Full/Permission/permission.sql 2> $logFileName
-$executionResult=$?
+$RUN_PSQL -f ./Full/Permission/permission.sql
+executionResult=$?
 if  [ $executionResult -eq 0 ]
     then
         echo "** Permission scripts sucessfully executed. **"

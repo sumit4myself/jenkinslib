@@ -1,81 +1,60 @@
 #!/bin/bash
-
-
 source ./init.cfg
 
-if [ $# -ne 1 ] 
-then 
-	echo "HOST DEFAULT"
-	db_host_ip=127.0.0.1
-else
-	db_host_ip=$1
+set -e
+set -u
+
+BUILD_NUMBER=$1
+BUILD_TYPE=$2
+
+if [  -z "$1" ] || [  -z "$2" ]
+  then
+    echo "Build Number and build type must be supplied eg: [ ./fulldb.sh admin_service_cloud_1.1 dev] "
+    exit 1
 fi
+databseName='';
+if  [ $BUILD_TYPE -ne 'prod' ]
+    then
+    	databseName=$BUILD_TYPE 
+    	databseName+='_'
+fi
+databseName+=$db
 
-fixfilename=_roll.sql
-mkdir -p ./Incremental_logs
+echo "** Staring incremental rollback db setup for Database [ Host [$host], Database [$databseName] ]  **"
+echo "** Info [ Build Number [$BUILD_NUMBER], Build Type [$BUILD_TYPE] ]  **"
 
-echo "*************************************************"  
+# Set these environmental variables to override them,
+# but they have safe defaults.
+export PGHOST=${host-localhost}
+export PGPORT=${port_number-5432}
+export PGDATABASE=${db}
+export PGUSER=${db_user_name-postgres}
+export PGPASSWORD=${db_password-postgres}
 
 
-checkversion=`mysql -uroot -p$rootpsw --host=$db_host_ip --port=$port_number -s -N -e "select count(1) from information_schema.tables where table_schema = '$db_avs' and table_name ='avs_version'"  2> ./Incremental_logs/log-rollback_incremental.log `
+echo "** Getting Version Details **"
+read build_nember update_date start_incremental last_incremental <<< $(psql -X --no-align  -t --field-separator ' ' --quiet -c "select build_nember, update_date, start_incremental, last_incremental from version limit 1") 
 
-	if [ $checkversion -eq 0 ]
-  then
-    echo "** ERROR : Table $db_avs.avs_version doesn't exist **"
-    echo "** PROCEDURE ABORTED                           **"
-    echo "*************************************************"  
-  	    exit 1
-	fi
+echo "******************************************************************************************"
+echo "Last build number  [ $build_nember ]"
+echo "Last build deployed on [ $update_date ]"
+echo "Start incremental [ $start_incremental ]"
+echo "Last incremental [ $last_incremental ]"
+echo "******************************************************************************************"
 
-checkconf=`mysql -uroot -p$rootpsw --host=$db_host_ip --port=$port_number -s -N -e "select count(1) from $db_avs.avs_version where avs_release = '$avs_release' and avs_start_incremental >= 0"  2> ./Incremental_logs/log-rollback_incremental.log `
-
-	if [ $checkconf -eq 0 ]
-  then
-    echo "** ERROR : Table $db_avs.avs_version is not configured **"
-    echo "** PROCEDURE ABORTED                           **"
-    echo "*************************************************"  
-  	    exit 1
-	fi
-  
-maxseq=`mysql -uroot -p$rootpsw --host=$db_host_ip --port=$port_number -s -N -e "select avs_last_incremental +1 from $db_avs.avs_version where avs_release = '$avs_release'"  2> ./Incremental_logs/log-rollback_incremental.log` 
-
-	if [ $maxseq -lt 0 ]
-		then
-	    echo "The value of avs_last_incremental in table AVS_VERSION must be > 0"
-	    echo "Actual value for avs_last_incremental is $maxseq"
-	    echo "Operation aborted"
-	    exit 1
-	fi
-	
-startincr=`mysql -uroot -p$rootpsw --host=$db_host_ip --port=$port_number -s -N -e "select avs_start_incremental  from $db_avs.avs_version where avs_release = '$avs_release'"  2> ./Incremental_logs/log-rollback_incremental.log` 
-
-	if [ $maxseq -lt 0 ]
-		then
-	    echo "The value of avs_start_incremental in table AVS_VERSION must be > 0"
-	    echo "Actual value for avs_last_incremental is $maxseq"
-	    echo "Operation aborted"
-	    exit 1
-	fi
-
+RUN_PSQL="psql -X --echo-all  --single-transaction --set AUTOCOMMIT=on  --set ON_ERROR_STOP=on"
 
 cd Incremental	
+fixfilename=_roll.sql
 fixstring=incr.sql
-
-
         for i in $( ls -r |grep incr.sql$ ); do
-
-					ssss=1
-   
+            t=1
         done
         
 maxfile=${i:0:3}
 maxfilebis=`expr $maxfile + 1`
-
-    
-      
-for (( X=$maxseq; X>$startincr; X-- ))
+for (( X=$last_incremental; X>$start_incremental; X-- ))
 do
-
 	if 		[ ${#X} -eq 1 ]
 			then
 			nomefile="00$X"
@@ -89,36 +68,16 @@ do
 			nomefile=$X
 			nomefile=$nomefile$fixfilename
 	fi
-
-##echo "il nome del file $nomefile "
-
-	  for i in $( ls |grep $nomefile ); do
-	        
-					echo "** executing script $nomefile ...           **"			
-					mysql --user=root --password=$rootpsw --port=$port_number --host=$db_host_ip $db_avs --batch < $nomefile 2> ../Incremental_logs/log-rollback_incremental.log
-					 
-					 if  [ $? -eq 0 ]
-					  then
-					  mysql -u root -p$rootpsw --host=$db_host_ip --port=$port_number -e "update $db_avs.avs_version set avs_last_incremental = $X -1 where avs_release = '$avs_release'" 2> ../Incremental_logs/log-rollback_incremental.log 
-					  mysql -u root -p$rootpsw --host=$db_host_ip --port=$port_number -e "update $db_avs.avs_version set avs_start_incremental = $X -1 where avs_release = '$avs_release'" 2> ../Incremental_logs/log-rollback_incremental.log
-					  echo "** $nomefile successfully                   **"	
-					  echo "**                                             **"
-					 else
-						echo "** FAILED : Error during script $nomefile   **"
-						echo "**                                             **"
-						echo "** PROCEDURE ABORTED                           **"
-					  maxseq2=`mysql -uroot -p$rootpsw --host=$db_host_ip --port=$port_number -s -N -e "select avs_last_incremental from $db_avs.avs_version where avs_release = '$avs_release'"  2>/dev/null` 
-					  printf -v filenameok1 "%03d" $maxseq
-						printf -v filenameok2 "%03d" $maxseq2
-
-					  ##echo "Are succesfully executed only the files from $filenameok1$fixfilename  to $filenameok2$fixfilename"
-					  echo "*************************************************"       
-					  exit 1
-					  
-					 fi
+	  for i in $( ls |grep $nomefile ); do	        
+               	echo "******************************************************************************************"
+			    echo "Executing script $nomefile ..."		
+				chmod 755 execute.sh		
+				OUTPUT=$(./execute.sh $nomefile)
+				$RUN_PSQL --no-align  -c "update version set last_incremental = $X -1"
+				$RUN_PSQL --no-align  -c "update version set start_incremental = $X -1" 
+				echo "$nomefile successfully                   **"	
+				echo "******************************************************************************************"
+					
 	  done
- 
 done  
-echo "** Complete successfully                       **"
-echo "*************************************************"   
-    
+echo "Complete successfully   "

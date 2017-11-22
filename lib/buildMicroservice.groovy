@@ -8,27 +8,39 @@ def call(body) {
 
         def subjectText
         def bodyText
-
+        def jenkinsLibRepository = "https://github.com/sumit4myself/jenkinslib.git";
+        def gitRepository = "https://github.com/sumit4myself/EsyCation.git";
+        def gitCredentials = "git_user_sumit4myself";
+        def workspaceDir = "EsyCation"
+    
+        def dbFullScriptDir = "jenkinslib/db";
+        def buildScriptDir = "jenkinslib/script";
+        def gradleModulePath = ":esycation-service-discovery-server";
+        def modulePath = "esycation-service-discovery-server";
+    
         try {
 
             def versionInfo
-            def gitBranchPath
             def ReleaseNumber
-            def mvnHome = tool "maven333"
-            def pom
-            def packageType = "zip"
-            def commonsScriptsDir = "commons-scripts"
-            def subModuleDir = ""
-            def distType = "war"
+          
+            def distType = "jar"
+
+            stage("Init Job "){
+                buildType = "${BUILD_TYPE}";
+                if (buildType == 'DEV') {
+                        gitBranch = 'develop'
+                } else if (buildType == 'DEMO') {
+                        gitBranch = 'demo'
+                } else {
+                        gitBranch = 'master'
+                }
+            }
         
             stage("Checkout") {
-                deleteDir()
-                
-                gitBranchPath = "${AVS_GIT_BRANCH}".split("/")
-
-                echo "Checkout in progress..."
-                checkout([$class: "GitSCM", branches: [[name: "${AVS_GIT_BRANCH}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: "RelativeTargetDirectory", relativeTargetDir: config.moduleDir]], submoduleCfg: [], userRemoteConfigs: [[url: config.repositoryUrl, credentialsId:"db9a3043-47f7-4274-aa62-7c3cd3b508e8"]]])
-                checkout([$class: "GitSCM", branches: [[name: "*/master"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: "RelativeTargetDirectory", relativeTargetDir: commonsScriptsDir]], submoduleCfg: [], userRemoteConfigs: [[url: "https://Jenkins@fleet.alm.accenture.com/avsbitbucket/scm/avs-m3/99-commons-scripts.git", credentialsId:"db9a3043-47f7-4274-aa62-7c3cd3b508e8"]]])
+              echo "Project Checkout in progress..."
+			  checkout([$class: 'GitSCM', branches: [[name: gitBranch]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: workspaceDir]], submoduleCfg: [], userRemoteConfigs: [[url: gitRepository, credentialsId: gitCredentials]]])
+              echo "JenkinsLib Checkout in progress..."
+			  checkout([$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'jenkinslib']], submoduleCfg: [], userRemoteConfigs: [[url: jenkinsLibRepository, credentialsId: gitCredentials]]])
             }
 
             stage("Build") {
@@ -48,54 +60,24 @@ def call(body) {
                 ReleaseNumber = "${ReleaseNumber}-${branch}"
                 currentBuild.description = "${ReleaseNumber} - ${Comment}"
 
-                if (config.moduleDir == "livecatalogue-ms") {
-                    subModuleDir = "avsbe-livecatalogue-ms/"
-                    sh "${mvnHome}/bin/mvn -f ${config.moduleDir}/avsbe-livecatalogue-persistence/pom.xml -B versions:set -DgenerateBackupPoms=false -DnewVersion=${ReleaseNumber}"
-                    sh "${mvnHome}/bin/mvn -f ${config.moduleDir}/avsbe-livecatalogue-persistence/pom.xml -P ${MAVEN_ADDITIONAL_PARAM} -Dmaven.test.failure.ignore clean package install"
-                } else if (config.moduleDir == "pgw-ms") {
-                    subModuleDir = "avsbe-pgw-ms/"
-                    sh "${mvnHome}/bin/mvn -f ${config.moduleDir}/avsbe-pgw-persistence/pom.xml -B versions:set -DgenerateBackupPoms=false -DnewVersion=${ReleaseNumber}"
-                    sh "${mvnHome}/bin/mvn -f ${config.moduleDir}/avsbe-pgw-persistence/pom.xml -Dmaven.test.failure.ignore clean package install"
-                }
+                sh "${buildScriptDir}/build/build.sh $workspaceDir $gradleModulePath $versionInfo"
                 
-                sh "${mvnHome}/bin/mvn -f ${config.moduleDir}/${subModuleDir}pom.xml -B versions:set -DgenerateBackupPoms=false -DnewVersion=${ReleaseNumber}"
-                if (config.moduleDir == "pinboard-ms" || config.moduleDir == "concurrentstream-ms" || config.moduleDir == "npvrbe-ms") {
-                    sh "${mvnHome}/bin/mvn -f ${config.moduleDir}/${subModuleDir}pom.xml -Dmaven.test.failure.ignore clean package install"
-                } else if (config.moduleDir == "pgw-ms") {
-                    sh "${mvnHome}/bin/mvn -f ${config.moduleDir}/${subModuleDir}pom.xml -P ${MAVEN_ADDITIONAL_PARAM} -Dmaven.test.failure.ignore clean package install"
-                } else {
-                    sh "${mvnHome}/bin/mvn -f ${config.moduleDir}/${subModuleDir}pom.xml -P ${MAVEN_ADDITIONAL_PARAM} -Dmaven.test.failure.ignore -DCORE_VERSION=${CORE_VERSION} clean package install"
-                }
-
-                if (RELEASE.toBoolean()) {
-                    pom = readMavenPom file: "${config.moduleDir}/${subModuleDir}pom.xml"
-                }
             }
 
-            stage("Package") {
-                if (RELEASE.toBoolean()) {
-                    if (config.moduleDir == "npvrbe-ms") {
-                        subModuleDir = "npvrear/"
-                        distType = "ear"
-                    }
+            stage("Package") {   
                     withEnv(["AVS_RELEASE_NUMBER=${ReleaseNumber}"]) {
                         echo "Packaging..."
-                        sh "rm -rf ${commonsScriptsDir}/dist"
-                        sh "rm -rf ${commonsScriptsDir}/conf"
-                        sh "rm -rf ${commonsScriptsDir}/lib"
-                        sh "mkdir -p ${commonsScriptsDir}/dist"
-                        sh "mkdir -p ${commonsScriptsDir}/conf"
-                        sh "mkdir -p ${commonsScriptsDir}/lib"
-                        sh "cp -f ${config.moduleDir}/${subModuleDir}target/*.${distType} ${commonsScriptsDir}/dist/"
-                        sh "cp -rf ${config.moduleDir}/${subModuleDir}target/conf/* ${commonsScriptsDir}/conf/"
-                        sh "cp -rf ${config.moduleDir}/${subModuleDir}target/lib/* ${commonsScriptsDir}/lib/"
-                        sh "chmod +x ${commonsScriptsDir}/build/build-ng.sh"
-                        sh "chmod +x ${commonsScriptsDir}/scripts/build.sh"
-                        sh "${commonsScriptsDir}/build/build-ng.sh"
+                        sh "rm -rf ${buildScriptDir}/dist"
+                        sh "rm -rf ${buildScriptDir}/db"
+                        sh "mkdir -p ${buildScriptDir}/dist"
+                        sh "mkdir -p ${buildScriptDir}/db"
+                     
+                        sh "cp -f ${config.workspaceDir}/build/*.${distType} ${commonsScriptsDir}/dist/"
+                        sh "cp -rf ${config.workspaceDir}/${subModuleDir}target/conf/* ${commonsScriptsDir}/conf/"
+                       
+                        sh "chmod +x ${buildScriptDir}/build/zip.sh"
+                        sh "${buildScriptDir}/build/zip.sh"
                     }
-                } else {
-                    currentBuild.result = "SUCCESS"
-                }
             }
 
             stage("Copy To Apcahe Location") {

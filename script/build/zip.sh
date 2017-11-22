@@ -3,8 +3,11 @@ WORKING_DIR=temp
 cd ../
 CUR_DIR=$(pwd)
 
+BUILD_NUMBER=$1
+BUILD_TYPE=$2
+
 echo "Starting delete dir ${CUR_DIR}/${WORKING_DIR}"
-echo "REL:${RELEASE_NUMBER}"
+echo "Staring zip for [build [$BUILD_NUMBER] Type [$BUILD_TYPE] ]"
 
 rm -rf "${CUR_DIR}/${WORKING_DIR}"
 
@@ -16,9 +19,7 @@ then
    exit 1
 fi
 
-
 #pwd
-
 CUR_DIR=$(pwd)
 echo "CUR_DIR: ${CUR_DIR}"
 	  	
@@ -26,8 +27,8 @@ if [ -d db ] && [ $(ls db/ | wc -l) -ne 0 ]
 then
 	echo "Starting zip ${CUR_DIR}/db"		
 
-    	#zip -rq "db_${BUILD_NUMBER}.zip" db/*
-	find db/ -type d -name .svn -prune -o -print | zip -uq db_${BUILD_NUMBER}.zip -@
+    	#zip -rq "db.zip" db/*
+	find db/ -type d -name .svn -prune -o -print | zip -uq db.zip -@
 	outputzip=$?
 	if [ $outputzip -ne 0 ]
   		then
@@ -36,9 +37,9 @@ then
   	
 	mkdir -p ${CUR_DIR}/${WORKING_DIR}/db
 
-	echo "Starting move ${CUR_DIR}/db_${BUILD_NUMBER}.zip into ${CUR_DIR}/${WORKING_DIR}/db"	
+	echo "Starting move ${CUR_DIR}/db.zip into ${CUR_DIR}/${WORKING_DIR}/db"	
 
-	mv db_${BUILD_NUMBER}.zip ${CUR_DIR}/${WORKING_DIR}/db
+	mv db.zip ${CUR_DIR}/${WORKING_DIR}/db
   		outputmove=$?
 	if [ $outputmove -ne 0 ]
   		then
@@ -51,8 +52,8 @@ if [ -d dist ] && [ $(ls dist/ | wc -l) -ne 0 ]
 then
 	echo "Starting zip ${CUR_DIR}/dist"
 
-	#zip -rq "dist_${BUILD_NUMBER}.zip" dist/*
-	find dist/ -type d -name .svn -prune -o -print | zip -uq dist_${BUILD_NUMBER}.zip -@
+	#zip -rq "dist.zip" dist/*
+	find dist/ -type d -name .svn -prune -o -print | zip -uq dist.zip -@
   		outputzip=$?
 	if [ $outputzip -ne 0 ]
   		then
@@ -61,9 +62,9 @@ then
 
 	mkdir -p ${CUR_DIR}/${WORKING_DIR}/dist
 
-	echo "Starting move ${CUR_DIR}/dist_${BUILD_NUMBER}.zip into ${CUR_DIR}/${WORKING_DIR}/dist" 
+	echo "Starting move ${CUR_DIR}/dist.zip into ${CUR_DIR}/${WORKING_DIR}/dist" 
 
-   	mv dist_${BUILD_NUMBER}.zip ${CUR_DIR}/${WORKING_DIR}/dist
+   	mv dist.zip ${CUR_DIR}/${WORKING_DIR}/dist
    	outputmove=$?
    	if [ $outputmove -ne 0 ]
   	   	then
@@ -72,9 +73,9 @@ then
 fi
 
 
-echo "Starting zip all file in ${CUR_DIR}/${WORKING_DIR}/ naming ${JOB_NAME}"_REL_"${RELEASE_NUMBER}.zip"
+echo "Starting zip all file in ${CUR_DIR}/${WORKING_DIR}/ naming "${BUILD_NUMBER}.zip"
 
-zip -rq ${JOB_NAME}"_REL_"${RELEASE_NUMBER}.zip *
+zip -rq "${BUILD_NUMBER}.zip *
   	outputzip=$?
   	if [ $outputzip -ne 0 ]
 then

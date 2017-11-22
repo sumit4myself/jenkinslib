@@ -1,38 +1,29 @@
 #!/bin/bash
 source ./init.cfg
-releaseType=$1
-releaseVersion=$2
-logDir='./logs'
-mkdir -p $logDir
-
-if  [ $1 -ne 'prod' ]
-    then
-    databseName=$releaseType 
-    databseName+='_'
-fi
-
-databseName+=$db
-
-logFileName=$logDir
-logFileName+='/inc_'
-logFileName+=$releaseType
-logFileName+='_'
-logFileName+=$releaseVersion
-logFileName+='.log'
-
-outputFileName=$logDir
-outputFileName+='/inc_'
-outputFileName+=$releaseType
-outputFileName+='_'
-outputFileName+=$releaseVersion
-outputFileName+='.out'
-
-echo "** Staring Incremental db setup for Database [ Host [$host_name], Database [$databseName] ]  **"
-echo "** Writing output [ $outputFileName ]  **"
-echo "** Writing log [ $logFileName ]  **"
 
 set -e
 set -u
+
+BUILD_NUMBER=$1
+BUILD_TYPE=$2
+
+if [  -z "$1" ] || [  -z "$2" ]
+  then
+    echo "Build Number and build type must be supplied eg: [ ./fulldb.sh admin_service_cloud_1.1 dev] "
+    exit 1
+fi
+
+databseName='';
+if  [ $BUILD_TYPE -ne 'prod' ]
+    then
+    databseName=$BUILD_TYPE 
+    databseName+='_'
+fi
+databseName+=$db
+
+echo "** Staring incremental db setup for Database [ Host [$host], Database [$databseName] ]  **"
+echo "** Info [ Build Number [$BUILD_NUMBER], Build Type [$BUILD_TYPE] ]  **"
+
 
 # Set these environmental variables to override them,
 # but they have safe defaults.
@@ -44,18 +35,21 @@ export PGPASSWORD=${db_password-postgres}
 
 
 echo "** Getting Version Details **"
-RUN_PSQL="psql -X --set AUTOCOMMIT=off --set ON_ERROR_STOP=on -L $logFileName "
-read build_nember update_date start_incremental last_incremental <<< $($RUN_PSQL --no-align  -t --field-separator ' ' --quiet -c "select build_nember, update_date, start_incremental, last_incremental from version") 2> $logFileName 
+read build_nember update_date start_incremental last_incremental <<< $(psql -X --no-align  -t --field-separator ' ' --quiet -c "select build_nember, update_date, start_incremental, last_incremental from version limit 1") 
+
+echo "******************************************************************************************"
+echo "Last build number  [ $build_nember ]"
+echo "Last build deployed on [ $update_date ]"
+echo "Start incremental [ $start_incremental ]"
+echo "Last incremental [ $last_incremental ]"
+echo "******************************************************************************************"
 
 
-echo "**  ** ** ** ** ** ** ** ** ** ** ** ** ** **"
-echo "** Last build number  [ $build_nember ]    **"
-echo "** Last build deployed on [ $update_date ] **"
-echo "** Last incremental [ $last_incremental ]  **"
-echo "** **  ** ** ** ** ** ** ** ** ** ** ** ** **"
+RUN_PSQL="psql -X --echo-all  --single-transaction --set AUTOCOMMIT=on  --set ON_ERROR_STOP=on"
 
 cd Incremental	
 fixstring=incr.sql
+fixfilename=_incr.sql
 
 for i in $( ls |grep incr.sql$ ); do
 		t=1
@@ -63,7 +57,7 @@ done
         
 maxfile=${i:0:3}
 maxfilebis=`expr $maxfile + 1`
-for (( X=$maxseq; X<$maxfilebis; X++ ))
+for (( X=$last_incremental; X<$maxfilebis; X++ ))
 do
 
 	if 		[ ${#X} -eq 1 ]
@@ -80,29 +74,17 @@ do
 			nomefile=$nomefile$fixfilename
 	fi
 
-##echo "il nome del file $nomefile "
+	##echo "il nome del file $nomefile "
 	for i in $( ls |grep $nomefile ); do
-			echo "** executing script $nomefile ...           **"			
-				$RUN_PSQL -f $nomefile 2> $logFileName
-					 if  [ $? -eq 0 ]
-					  then
-							$RUN_PSQL --no-align  -t --field-separator ' ' --quiet -c "update version set last_incremental = $X " 2> .$logFileName
-							$RUN_PSQL --no-align  -t --field-separator ' ' --quiet -c "update version set start_incremental = $maxseq -1" 2> .$logFileName
-							echo "** $nomefile successfully                   **"	
-							echo "**                                          **"
-					 else
-							echo "** FAILED : Error during script $nomefile   **"
-							echo "**                                          **"
-							echo "** PROCEDURE ABORTED                        **"
-					  		read maxseq2 <<< $($RUN_PSQL --no-align  -t --field-separator ' ' --quiet -c "select last_incremental from version") 2>/dev/null 
-							printf -v filenameok1 "%03d" $maxseq
-							printf -v filenameok2 "%03d" $maxseq2
-
-					  ##echo "Are succesfully executed only the files from $filenameok1$fixfilename  to $filenameok2$fixfilename"
-					  echo "*************************************************"       
-					  exit 1
-					 fi
+			echo "******************************************************************************************"
+			echo "Executing script $nomefile ..."	
+				chmod 755 execute.sh		
+				OUTPUT=$(./execute.sh $nomefile)
+				$RUN_PSQL --no-align  -c "update version set last_incremental = $X "
+				$RUN_PSQL --no-align  -c "update version set start_incremental = $last_incremental" 
+				echo "$nomefile successfully                   "	
+			echo "******************************************************************************************"
+					
 	  done
 done  
-echo "** Complete successfully                       **"
-echo "*************************************************"  
+echo "Complete successfully   "

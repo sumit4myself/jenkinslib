@@ -1,1 +1,1 @@
-INSERT INTO version (last_incremental) values (0);
+INSERT INTO version (last_incremental,start_incremental) values (0,0);
