@@ -17,6 +17,7 @@ def call(body) {
         def buildScriptDir = "jenkinslib/script";
         def gradleModulePath = ":esycation-service-discovery-server";
         def modulePath = "esycation-service-discovery-server";
+        def apacheLocation = "/usr/local/";
     
         try {
 
@@ -38,54 +39,44 @@ def call(body) {
         
             stage("Checkout") {
               echo "Project Checkout in progress..."
-			  checkout([$class: 'GitSCM', branches: [[name: gitBranch]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: workspaceDir]], submoduleCfg: [], userRemoteConfigs: [[url: gitRepository, credentialsId: gitCredentials]]])
+			  checkout([$class: 'GitSCM', branches: [[name: config.gitBranch]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: config.workspaceDir]], submoduleCfg: [], userRemoteConfigs: [[url: config.gitRepository, credentialsId: config.gitCredentials]]])
               echo "JenkinsLib Checkout in progress..."
-			  checkout([$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'jenkinslib']], submoduleCfg: [], userRemoteConfigs: [[url: jenkinsLibRepository, credentialsId: gitCredentials]]])
+			  checkout([$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'jenkinslib']], submoduleCfg: [], userRemoteConfigs: [[url: config.jenkinsLibRepository, credentialsId: config.gitCredentials]]])
             }
 
             stage("Build") {
                 echo "Build in progress..."
-                
                 if (RELEASE.toBoolean()) {
                     echo "Building a new RELEASE..."
-                    versionInfo = getNextVersion(env.JOB_NAME, config.moduleDir)
+                    versionInfo = getNextVersion(env.JOB_NAME, config.workspaceDir)
                     ReleaseNumber = versionInfo.version
                 } else {
                     echo "Building a new SNAPSHOT..."
                     ReleaseNumber = "SNAPSHOT"
                 }
-                
-                def size = gitBranchPath.length
-                def branch = "${gitBranchPath[size-1]}"
-                ReleaseNumber = "${ReleaseNumber}-${branch}"
+                ReleaseNumber = "${ReleaseNumber}-${gitBranch}"
                 currentBuild.description = "${ReleaseNumber} - ${Comment}"
-
-                sh "${buildScriptDir}/build/build.sh $workspaceDir $gradleModulePath $versionInfo"
-                
+                sh "${buildScriptDir}/build/build.sh $workspaceDir $gradleModulePath $ReleaseNumber"
             }
 
             stage("Package") {   
-                    withEnv(["AVS_RELEASE_NUMBER=${ReleaseNumber}"]) {
-                        echo "Packaging..."
-                        sh "rm -rf ${buildScriptDir}/dist"
-                        sh "rm -rf ${buildScriptDir}/db"
-                        sh "mkdir -p ${buildScriptDir}/dist"
-                        sh "mkdir -p ${buildScriptDir}/db"
-                     
-                        sh "cp -f ${config.workspaceDir}/build/*.${distType} ${commonsScriptsDir}/dist/"
-                        sh "cp -rf ${config.workspaceDir}/${subModuleDir}target/conf/* ${commonsScriptsDir}/conf/"
-                       
-                        sh "chmod +x ${buildScriptDir}/build/zip.sh"
-                        sh "${buildScriptDir}/build/zip.sh"
-                    }
+                   
+                echo "Packaging..."
+                sh "rm -rf ${buildScriptDir}/dist"
+                sh "rm -rf ${buildScriptDir}/db"
+                sh "mkdir -p ${buildScriptDir}/dist"
+                sh "mkdir -p ${buildScriptDir}/db"
+                
+                sh "cp -f ${config.workspaceDir}/build/*.${distType} ${commonsScriptsDir}/dist/"
+                sh "cp -rf ${config.workspaceDir}/${subModuleDir}target/conf/* ${commonsScriptsDir}/conf/"
+                
+                sh "chmod +x ${buildScriptDir}/build/zip.sh"
+                sh "${buildScriptDir}/build/zip.sh $ReleaseNumber"
+                    
             }
 
             stage("Copy To Apcahe Location") {
-                if (RELEASE.toBoolean()) {
-                    archiveArtifacts artifacts: "${commonsScriptsDir}/temp/*.zip"
-                } else {
-                    currentBuild.result = "SUCCESS"
-                }
+                sh "${buildScriptDir}/build/archive.sh $ReleaseNumber $apacheLocation"
             }
 
             stage("Execute DB Script") {

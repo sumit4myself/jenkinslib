@@ -3,11 +3,10 @@ WORKING_DIR=temp
 cd ../
 CUR_DIR=$(pwd)
 
-BUILD_NUMBER=$1
-BUILD_TYPE=$2
+ReleaseNumber=$1
 
 echo "Starting delete dir ${CUR_DIR}/${WORKING_DIR}"
-echo "Staring zip for [build [$BUILD_NUMBER] Type [$BUILD_TYPE] ]"
+echo "Staring zip for [build [$ReleaseNumber] ]"
 
 rm -rf "${CUR_DIR}/${WORKING_DIR}"
 
@@ -73,9 +72,9 @@ then
 fi
 
 
-echo "Starting zip all file in ${CUR_DIR}/${WORKING_DIR}/ naming "${BUILD_NUMBER}.zip"
+echo "Starting zip all file in ${CUR_DIR}/${WORKING_DIR}/ naming "${ReleaseNumber}.zip"
 
-zip -rq "${BUILD_NUMBER}.zip *
+zip -rq "${ReleaseNumber}.zip *
   	outputzip=$?
   	if [ $outputzip -ne 0 ]
 then

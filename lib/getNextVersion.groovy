@@ -1,7 +1,8 @@
-def call(jobName, modulePath) {
+def call(jobName, workspaceDir) {
     def projectEnv
-    def projectJson = readJSON file: "${modulePath}/project.json"
-    def projectVersion = "${projectJson.version}"
+    def projectProperties = readProperties  file: "${workspaceDir}/gradle.properties"
+    def projectVersion = "${projectProperties['version']}"
+
     sh "touch /home/jenkins/${jobName}.json"
     sh "cat /home/jenkins/${jobName}.json > ${jobName}.json"
     try {
