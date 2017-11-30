@@ -32,8 +32,8 @@ def call(body) {
                 array = "${GIT_BRANCH}".split("/");
                 releaseBranch = "${array[array.length-1]}";
                 echo "Build initlizing for targetEnvironment [${targetEnvironment}] and releaseBranch [${releaseBranch}] "
-                echo "ModulePath [${modulePath}] "
-                echo "Gradle ModulePath [${gradleModulePath}] "
+                echo "ModulePath [${config.modulePath}] "
+                echo "Gradle ModulePath [${config.gradleModulePath}] "
                 
             }
         
