@@ -38,7 +38,11 @@ def call(body) {
             }
         
             stage("Checkout") {
-              echo "Project Checkout in progress... Repository [ " + gitRepository + " ] , Branch [ ${GIT_BRANCH} ] , Credential [ " + gitCredentials + " ]"
+              echo "Project Checkout in progress..."
+              echo "\tRepository [ " + gitRepository + " ]"
+              echo "\tBranch [ ${GIT_BRANCH} ]"
+              echo "\tCredential [ " + gitCredentials + " ]"
+              
 			  checkout([$class: 'GitSCM', branches: [[name: '${GIT_BRANCH}']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: workspaceDir]], submoduleCfg: [], userRemoteConfigs: [[url: gitRepository, credentialsId: gitCredentials]]])
               echo "JenkinsLib Checkout in progress..."
 			  checkout([$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'jenkinslib']], submoduleCfg: [], userRemoteConfigs: [[url: 'https://github.com/sumit4myself/jenkinslib.git', credentialsId: gitCredentials]]])
