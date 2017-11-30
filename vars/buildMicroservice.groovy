@@ -60,7 +60,7 @@ def call(body) {
                 }
                 releaseNumber = "${releaseNumber}-${releaseBranch}"
                 currentBuild.description = "${releaseNumber} - ${COMMENT}"
-                sh "${buildScriptDir}/build/build.sh $workspaceDir $gradleModulePath $ReleaseNumber"
+                sh "${buildScriptDir}/build/build.sh $workspaceDir $gradleModulePath $releaseNumber"
             }
 
             stage("Package") {   
