@@ -5,7 +5,10 @@ def call(body) {
     body()
 
     node("master") {
- 
+
+        def subjectText
+        def bodyText
+        
         def jenkinsLibRepository = "https://github.com/sumit4myself/jenkinslib.git";
         def gitRepository = "https://github.com/sumit4myself/EsyCation.git";
         def gitCredentials = "git_user_sumit4myself";
@@ -20,19 +23,15 @@ def call(body) {
         try {
 
             def versionInfo
-            def ReleaseNumber
+            def releaseNumber
           
             def distType = "jar"
 
             stage("Init Job "){
-                buildType = "${BUILD_TYPE}";
-                if (buildType == 'DEV') {
-                        gitBranch = 'develop'
-                } else if (buildType == 'DEMO') {
-                        gitBranch = 'demo'
-                } else {
-                        gitBranch = 'master'
-                }
+                targetEnvironment = "${TARGET_ENVIRONMENT}";
+                array = = "${GIT_BRANCH}".split("/");
+                releaseBranch = "${array[size-1]}";
+                echo "Build initlizing for targetEnvironment [${targetEnvironment}] and releaseBranch [${releaseBranch}]"
             }
         
             stage("Checkout") {
@@ -126,7 +125,7 @@ def call(body) {
             subjectText = "Build finished unsuccessfully!"
             bodyText = "It appears that ${env.BUILD_URL} is failing, somebody should do something about that!\n Please check console log."
         } finally {
-            sendEmail(subjectText, bodyText)
+           // sendEmail(subjectText, bodyText)
         }
     }
 }

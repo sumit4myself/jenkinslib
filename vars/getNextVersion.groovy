@@ -23,5 +23,5 @@ def call(jobName, workspaceDir) {
     } else {
         incremental = newIncremental as String;
     }
-    return [version:"${projectVersion}-${incremental}", major: projectVersion, incremental:newIncremental]
+    return [version:"${projectVersion}-${incremental}", major: projectVersion, incremental: newIncremental]
 }
