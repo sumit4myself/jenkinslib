@@ -60,6 +60,7 @@ def call(body) {
                 }
                 releaseNumber = "${releaseNumber}-${releaseBranch}"
                 currentBuild.description = "${releaseNumber} - ${COMMENT}"
+                sh "chmod +x ${buildScriptDir}/build/build.sh"
                 sh "${buildScriptDir}/build/build.sh $workspaceDir $gradleModulePath $releaseNumber"
             }
 
