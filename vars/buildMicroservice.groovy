@@ -36,7 +36,7 @@ def call(body) {
         
             stage("Checkout") {
               echo "Project Checkout in progress..."
-			  checkout([$class: 'GitSCM', branches: [[name: ${GIT_BRANCH}]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: config.workspaceDir]], submoduleCfg: [], userRemoteConfigs: [[url: config.gitRepository, credentialsId: config.gitCredentials]]])
+			  checkout([$class: 'GitSCM', branches: [[name: '${GIT_BRANCH}']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: config.workspaceDir]], submoduleCfg: [], userRemoteConfigs: [[url: config.gitRepository, credentialsId: config.gitCredentials]]])
               echo "JenkinsLib Checkout in progress..."
 			  checkout([$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'jenkinslib']], submoduleCfg: [], userRemoteConfigs: [[url: config.jenkinsLibRepository, credentialsId: config.gitCredentials]]])
             }
