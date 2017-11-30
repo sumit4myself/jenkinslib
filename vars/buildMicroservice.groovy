@@ -42,7 +42,7 @@ def call(body) {
               echo "\tRepository [ " + gitRepository + " ]"
               echo "\tBranch [ ${GIT_BRANCH} ]"
               echo "\tCredential [ " + gitCredentials + " ]"
-              
+
 			  checkout([$class: 'GitSCM', branches: [[name: '${GIT_BRANCH}']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: workspaceDir]], submoduleCfg: [], userRemoteConfigs: [[url: gitRepository, credentialsId: gitCredentials]]])
               echo "JenkinsLib Checkout in progress..."
 			  checkout([$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'jenkinslib']], submoduleCfg: [], userRemoteConfigs: [[url: 'https://github.com/sumit4myself/jenkinslib.git', credentialsId: gitCredentials]]])
@@ -59,7 +59,7 @@ def call(body) {
                     releaseNumber = "SNAPSHOT"
                 }
                 releaseNumber = "${releaseNumber}-${releaseBranch}"
-                currentBuild.description = "${releaseNumber} - ${Comment}"
+                currentBuild.description = "${releaseNumber} - ${COMMENT}"
                 sh "${buildScriptDir}/build/build.sh $workspaceDir $gradleModulePath $ReleaseNumber"
             }
 
