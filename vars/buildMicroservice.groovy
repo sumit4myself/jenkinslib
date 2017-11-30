@@ -5,9 +5,7 @@ def call(body) {
     body()
 
     node("master") {
-
-        def subjectText
-        def bodyText
+ 
         def jenkinsLibRepository = "https://github.com/sumit4myself/jenkinslib.git";
         def gitRepository = "https://github.com/sumit4myself/EsyCation.git";
         def gitCredentials = "git_user_sumit4myself";
