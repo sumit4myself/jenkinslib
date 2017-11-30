@@ -30,7 +30,7 @@ def call(body) {
             stage("Init Job "){
                 targetEnvironment = "${TARGET_ENVIRONMENT}";
                 array = "${GIT_BRANCH}".split("/");
-                releaseBranch = "${array[size-1]}";
+                releaseBranch = "${array[array.length-1]}";
                 echo "Build initlizing for targetEnvironment [${targetEnvironment}] and releaseBranch [${releaseBranch}]"
             }
         
