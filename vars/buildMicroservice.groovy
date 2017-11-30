@@ -43,16 +43,16 @@ def call(body) {
 
             stage("Build") {
                 echo "Build in progress..."
-                if (RELEASE.toBoolean()) {
+                if (targetEnvironment == "PROD") {
                     echo "Building a new RELEASE..."
                     versionInfo = getNextVersion(env.JOB_NAME, config.workspaceDir)
-                    ReleaseNumber = versionInfo.version
+                    releaseNumber = versionInfo.version
                 } else {
                     echo "Building a new SNAPSHOT..."
-                    ReleaseNumber = "SNAPSHOT"
+                    releaseNumber = "SNAPSHOT"
                 }
-                ReleaseNumber = "${ReleaseNumber}-${gitBranch}"
-                currentBuild.description = "${ReleaseNumber} - ${Comment}"
+                releaseNumber = "${releaseNumber}-${releaseBranch}"
+                currentBuild.description = "${releaseNumber} - ${Comment}"
                 sh "${buildScriptDir}/build/build.sh $workspaceDir $gradleModulePath $ReleaseNumber"
             }
 
