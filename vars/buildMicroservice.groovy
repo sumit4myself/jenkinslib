@@ -32,10 +32,13 @@ def call(body) {
                 array = "${GIT_BRANCH}".split("/");
                 releaseBranch = "${array[array.length-1]}";
                 echo "Build initlizing for targetEnvironment [${targetEnvironment}] and releaseBranch [${releaseBranch}] "
+                echo "ModulePath [${modulePath}] "
+                echo "Gradle ModulePath [${gradleModulePath}] "
+                
             }
         
             stage("Checkout") {
-              echo "Project Checkout in progress... Repository [ "+config.gitRepository+" ] , Branch [ ${GIT_BRANCH} ] , Credential [ "+config.gitCredentials+" ]"
+              echo "Project Checkout in progress... Repository [ "+gitRepository+" ] , Branch [ ${GIT_BRANCH} ] , Credential [ "+gitCredentials+" ]"
 			  checkout([$class: 'GitSCM', branches: [[name: '${GIT_BRANCH}']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: config.workspaceDir]], submoduleCfg: [], userRemoteConfigs: [[url: config.gitRepository, credentialsId: config.gitCredentials]]])
               echo "JenkinsLib Checkout in progress..."
 			  checkout([$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'jenkinslib']], submoduleCfg: [], userRemoteConfigs: [[url: config.jenkinsLibRepository, credentialsId: config.gitCredentials]]])
