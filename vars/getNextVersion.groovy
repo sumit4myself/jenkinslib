@@ -4,9 +4,8 @@ def call(jobName, workspaceDir) {
     def projectVersion = "${projectProperties['version']}"
 
     echo "Getting next version for project [${jobName}], Version [${projectVersion}] "
-    sh "mkdir -p /home/jenkins/"
-    sh "touch /home/jenkins/${jobName}.json"
-    sh "cat /home/jenkins/${jobName}.json > ${jobName}.json"
+    sh "touch /tmp/${jobName}.json"
+    sh "cat /tmp/${jobName}.json > ${jobName}.json"
     try {
         projectEnv = readJSON file: "${jobName}.json"
     } catch (JSONException) {
