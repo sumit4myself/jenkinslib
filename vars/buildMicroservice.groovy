@@ -72,21 +72,20 @@ def call(body) {
                 sh "mkdir -p ${buildScriptDir}/dist"
                 sh "mkdir -p ${buildScriptDir}/db"
                 
-                sh "cp -f ${config.workspaceDir}/build/*.${distType} ${commonsScriptsDir}/dist/"
-                sh "cp -rf ${config.workspaceDir}/${subModuleDir}target/conf/* ${commonsScriptsDir}/conf/"
+                sh "cp -f ${config.workspaceDir}/build/*.${distType} ${buildScriptDir}/dist/"
                 
                 sh "chmod +x ${buildScriptDir}/build/zip.sh"
-                sh "${buildScriptDir}/build/zip.sh $ReleaseNumber"
+                sh "${buildScriptDir}/build/zip.sh $releaseNumber"
                     
             }
 
             stage("Copy To Apcahe Location") {
-                sh "${buildScriptDir}/build/archive.sh $ReleaseNumber $apacheLocation"
+                sh "${buildScriptDir}/build/archive.sh $releaseNumber $apacheLocation"
             }
 
             stage("Execute DB Script") {
                 if (RELEASE.toBoolean()) {
-                    archiveArtifacts artifacts: "${commonsScriptsDir}/temp/*.zip"
+                    archiveArtifacts artifacts: "${buildScriptDir}/temp/*.zip"
                 } else {
                     currentBuild.result = "SUCCESS"
                 }
