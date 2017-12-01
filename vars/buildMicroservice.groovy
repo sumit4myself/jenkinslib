@@ -80,6 +80,7 @@ def call(body) {
             }
 
             stage("Copy To Apcahe Location") {
+                sh "chmod +x ${buildScriptDir}/build/archive.sh"
                 sh "${buildScriptDir}/build/archive.sh $releaseNumber $apacheLocation"
             }
 
