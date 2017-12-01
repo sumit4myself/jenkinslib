@@ -72,8 +72,8 @@ def call(body) {
                 sh "mkdir -p ${buildScriptDir}/dist"
                 sh "mkdir -p ${buildScriptDir}/db"
                 
-                sh "cp -f ${config.workspaceDir}/build/*.${distType} ${buildScriptDir}/dist/"
-                
+                sh "cp -f ${workspaceDir}/build/*.${distType} ${buildScriptDir}/dist/"
+
                 sh "chmod +x ${buildScriptDir}/build/zip.sh"
                 sh "${buildScriptDir}/build/zip.sh $releaseNumber"
                     
@@ -92,7 +92,7 @@ def call(body) {
             }        
 
             stage('Deploy') {
-                if (RELEASE.toBoolean() && HOT_DEPLOY.toBoolean() && TEST_SERVER != "") {
+                if (HOT_DEPLOY.toBoolean()) {
                     hotDeploy(TEST_SERVER, pom.groupId, pom.artifactId, packageType, pom.version, versionInfo.major, config.moduleDir)
                 } else {
                     currentBuild.result = "SUCCESS"
