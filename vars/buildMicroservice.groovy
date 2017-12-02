@@ -37,9 +37,9 @@ def call(body) {
                 hasDatabase = config.hasDatabase;
                 databaseName = config.databaseName;
 
-                if(targetEnvironment = "DEV"){
+                if(targetEnvironment == "DEV"){
                     databaseName = "dev_"+databaseName;
-                }else if(targetEnvironment = "UAT"){
+                }else if(targetEnvironment == "UAT"){
                     databaseName = "uat_"+databaseName;
                 }
 
