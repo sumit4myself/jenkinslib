@@ -24,17 +24,47 @@ def call(body) {
 
             def versionInfo
             def releaseNumber
-          
             def distType = "jar"
+            def hasDatabase = false
+            def databaseName = "";
+            def finalName
+            def incrementalRange;
 
             stage("Init Job "){
                 targetEnvironment = "${TARGET_ENVIRONMENT}";
                 array = "${GIT_BRANCH}".split("/");
                 releaseBranch = "${array[array.length-1]}";
+                hasDatabase = config.hasDatabase;
+                databaseName = config.databaseName;
+
+                if(targetEnvironment = "DEV"){
+                    databaseName = "dev_"+databaseName;
+                }else if(targetEnvironment = "UAT"){
+                    databaseName = "uat_"+databaseName;
+                }
+
+                if (RELEASE.toBoolean()) {
+                    versionInfo = getNextVersion(env.JOB_NAME, config.workspaceDir)
+                    releaseNumber = versionInfo.version
+                } else {
+                    releaseNumber = "SNAPSHOT"
+                }
+                releaseNumber = "${releaseNumber}-${releaseBranch}"
+                finalName =  "${env.JOB_NAME}-${releaseNumber}-${releaseBranch}"
+
+                echo "***************************************************************************************************"
                 echo "Build initlizing for targetEnvironment [${targetEnvironment}] and releaseBranch [${releaseBranch}] "
                 echo "ModulePath [${config.modulePath}] "
                 echo "Gradle ModulePath [${config.gradleModulePath}] "
-                
+                if(hasDatabase){
+                    sh "chmod +x ${buildScriptDir}/db/getIncrementalRange.sh"
+                    sh "${buildScriptDir}/db/getIncrementalRange.sh $databaseName"
+                    incrementalRange = [start:"${start_incremental}", end: "${last_incremental}"]
+                    echo "Database Name [${databaseName}]"
+                    echo "Incremental Range [${incrementalRange}]"
+                }
+                echo "Release Number [${releaseNumber}] and Final Name [${finalName}]"
+                echo "***************************************************************************************************"
             }
         
             stage("Checkout") {
@@ -50,7 +80,7 @@ def call(body) {
 
             stage("Build") {
                 echo "Build in progress..."
-                if (targetEnvironment == "PROD") {
+                if (RELEASE.toBoolean()) {
                     echo "Building a new RELEASE..."
                     versionInfo = getNextVersion(env.JOB_NAME, config.workspaceDir)
                     releaseNumber = versionInfo.version
@@ -65,12 +95,18 @@ def call(body) {
             }
 
             stage("Package") {   
-                   
                 echo "Packaging..."
                 sh "rm -rf ${buildScriptDir}/dist"
-                sh "rm -rf ${buildScriptDir}/db"
                 sh "mkdir -p ${buildScriptDir}/dist"
-                sh "mkdir -p ${buildScriptDir}/db"
+                if(config.hasDatabase.toBoolean()){
+                    sh "rm -rf ${buildScriptDir}/db"
+                    sh "mkdir -p ${buildScriptDir}/db"
+                }
+                
+                sh "chmod +x ${buildScriptDir}/build/copyResources.sh ${config.hasDatabase} ${config.databaseName} "
+                sh "${buildScriptDir}/build/copyResources.sh $releaseNumber"
+                
+              
                 
                 sh "cp -f ${workspaceDir}/build/*.${distType} ${buildScriptDir}/dist/"
 
