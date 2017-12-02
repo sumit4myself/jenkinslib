@@ -57,8 +57,8 @@ def call(body) {
                 echo "ModulePath [${config.modulePath}] "
                 echo "Gradle ModulePath [${config.gradleModulePath}] "
                 if(hasDatabase){
-                    sh "chmod +x ${buildScriptDir}/db/getIncrementalRange.sh"
-                    sh "${buildScriptDir}/db/getIncrementalRange.sh $databaseName"
+                    sh "chmod +x ${buildScriptDir}/database/getIncrementalRange.sh"
+                    sh "${buildScriptDir}/database/getIncrementalRange.sh $databaseName"
                     incrementalRange = [start: "${start_incremental}", end: "${last_incremental}"]
                     echo "Database Name [${databaseName}]"
                     echo "Incremental Range [${incrementalRange}]"
