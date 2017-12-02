@@ -59,7 +59,7 @@ def call(body) {
                 if(hasDatabase){
                     sh "chmod +x ${buildScriptDir}/db/getIncrementalRange.sh"
                     sh "${buildScriptDir}/db/getIncrementalRange.sh $databaseName"
-                    incrementalRange = [start:"${start_incremental}", end: "${last_incremental}"]
+                    incrementalRange = [start: "${start_incremental}", end: "${last_incremental}"]
                     echo "Database Name [${databaseName}]"
                     echo "Incremental Range [${incrementalRange}]"
                 }

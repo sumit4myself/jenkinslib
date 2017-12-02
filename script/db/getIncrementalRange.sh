@@ -14,3 +14,4 @@ echo "Getting Incremental range from [${databseName}]"
 
 export start_incremental=1
 export last_incremental=2
+
