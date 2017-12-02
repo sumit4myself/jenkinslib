@@ -3,8 +3,9 @@ def call(jobName, workspaceDir) {
     def projectProperties = readProperties  file: "${workspaceDir}/gradle.properties"
     def projectVersion = "${projectProperties['version']}"
 
-    sh "touch /home/jenkins/${jobName}.json"
-    sh "cat /home/jenkins/${jobName}.json > ${jobName}.json"
+    echo "Getting next version for project [${jobName}], Version [${projectVersion}] "
+    sh "touch /tmp/${jobName}.json"
+    sh "cat /tmp/${jobName}.json > ${jobName}.json"
     try {
         projectEnv = readJSON file: "${jobName}.json"
     } catch (JSONException) {

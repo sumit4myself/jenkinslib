@@ -82,7 +82,7 @@ def call(body) {
                 echo "Build in progress..."
                 if (RELEASE.toBoolean()) {
                     echo "Building a new RELEASE..."
-                    versionInfo = getNextVersion(env.JOB_NAME, config.workspaceDir)
+                    versionInfo = getNextVersion(env.JOB_NAME, workspaceDir)
                     releaseNumber = versionInfo.version
                 } else {
                     echo "Building a new SNAPSHOT..."
