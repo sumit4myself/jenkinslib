@@ -30,7 +30,18 @@ def call(body) {
             def finalName
             def incrementalRange;
 
-            stage("Init Job "){
+            stage("Checkout") {
+              echo "Project Checkout in progress..."
+              echo "\tRepository [ " + gitRepository + " ]"
+              echo "\tBranch [ ${GIT_BRANCH} ]"
+              echo "\tCredential [ " + gitCredentials + " ]"
+
+			  checkout([$class: 'GitSCM', branches: [[name: '${GIT_BRANCH}']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: workspaceDir]], submoduleCfg: [], userRemoteConfigs: [[url: gitRepository, credentialsId: gitCredentials]]])
+              echo "JenkinsLib Checkout in progress..."
+			  checkout([$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'jenkinslib']], submoduleCfg: [], userRemoteConfigs: [[url: 'https://github.com/sumit4myself/jenkinslib.git', credentialsId: gitCredentials]]])
+            }
+
+            stage("Init Job variables"){
                 targetEnvironment = "${TARGET_ENVIRONMENT}";
                 array = "${GIT_BRANCH}".split("/");
                 releaseBranch = "${array[array.length-1]}";
@@ -67,16 +78,7 @@ def call(body) {
                 echo "***************************************************************************************************"
             }
         
-            stage("Checkout") {
-              echo "Project Checkout in progress..."
-              echo "\tRepository [ " + gitRepository + " ]"
-              echo "\tBranch [ ${GIT_BRANCH} ]"
-              echo "\tCredential [ " + gitCredentials + " ]"
-
-			  checkout([$class: 'GitSCM', branches: [[name: '${GIT_BRANCH}']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: workspaceDir]], submoduleCfg: [], userRemoteConfigs: [[url: gitRepository, credentialsId: gitCredentials]]])
-              echo "JenkinsLib Checkout in progress..."
-			  checkout([$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'jenkinslib']], submoduleCfg: [], userRemoteConfigs: [[url: 'https://github.com/sumit4myself/jenkinslib.git', credentialsId: gitCredentials]]])
-            }
+           
 
             stage("Build") {
                 echo "Build in progress..."
