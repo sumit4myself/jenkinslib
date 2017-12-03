@@ -47,6 +47,9 @@ def call(body) {
                 releaseBranch = "${array[array.length-1]}";
                 hasDatabase = config.hasDatabase;
                 databaseName = config.databaseName;
+                if(config.workspaceDir != null){
+                    workspaceDir = config.workspaceDir
+                }
 
                 if(targetEnvironment == "DEV"){
                     databaseName = "dev_"+databaseName;
@@ -55,7 +58,7 @@ def call(body) {
                 }
 
                 if (RELEASE.toBoolean()) {
-                    versionInfo = getNextVersion(env.JOB_NAME, config.workspaceDir)
+                    versionInfo = getNextVersion(env.JOB_NAME, workspaceDir)
                     releaseNumber = versionInfo.version
                 } else {
                     releaseNumber = "SNAPSHOT"
