@@ -18,7 +18,7 @@ def call(body) {
         def buildScriptDir = "jenkinslib/script";
         def gradleModulePath = "";
         def modulePath = "";
-        def apacheLocation = "/usr/local/";
+        def apacheLocation = "/opt/build/";
     
         try {
 
