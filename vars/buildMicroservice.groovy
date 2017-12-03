@@ -64,7 +64,7 @@ def call(body) {
                     releaseNumber = "SNAPSHOT"
                 }
                 releaseNumber = "${releaseNumber}-${releaseBranch}"
-                finalName =  "${env.JOB_NAME}-${releaseNumber}-${releaseBranch}.${distType}"
+                finalName =  "${env.JOB_NAME}-${releaseNumber}.${distType}"
 
                 echo "***************************************************************************************************"
                 echo "Build initlizing for targetEnvironment [${targetEnvironment}] and releaseBranch [${releaseBranch}] "
