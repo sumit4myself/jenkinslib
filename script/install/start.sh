@@ -1,169 +1,185 @@
 #!/bin/bash
 
-BASE=`dirname $0`
 
-LIB_DIR=$BASE/../lib
-CONFIG_DIR=$BASE/../config
-MAIN_CLASS=org.springframework.batch.core.launch.support.CommandLineJobRunner
+# micro service name 
+APPLICATION_NAME=admin-service
 
-APPLICATION_TENANT=$2
+# Actual file name of Micro Service (jar), 
+JAR_NAME=admin-service-1.0.jar
+# ^^^ that should relative to MS_HOME directory.
 
-if [ "$APPLICATION_TENANT" = "." ]; then
-	echo "USING DEFAULT TENANT"
-else
-	if [ ! -d $CONFIG_DIR/$APPLICATION_TENANT ]; then
-		echo "TENTANT ${APPLICATION_TENANT} DOES NOT EXIST!!"
-		exit 1
-	fi
-fi
+# Total instance to run
+TOTAL_INSTANCE_TO_RUN=2
 
-LOG_FILE=$BASE/../log/$APPLICATION_TENANT/$1.`date +"%Y%m%d"`.log
-echo Redirecting all output to log file $LOG_FILE
-exec 3>&1 4>&2 1>>$LOG_FILE 2>&1
+# Where micro service jar file sits?
+MS_HOME=/Users/SUMIT/GIT/EsyCation/build
 
-source $CONFIG_DIR/commons.env
+# Which username we should run as.
+RUNASUSER=root # <-- EDIT THIS LINE, 
+# if port number for spring boot is < 1024 it needs root perm.
 
-echo "Environment:"
-echo "JAVA_CMD=$JAVA_CMD"
-echo "LIB_DIR=$LIB_DIR"
-echo "CONFIG_DIR=$CONFIG_DIR/$APPLICATION_TENANT"
-echo "MAIN_CLASS=$MAIN_CLASS"
+# wait before issuing 
+STARTUP_WAIT=20
 
-echo "building classpath using JARs contained in: $LIB_DIR"
-JARS_LIST=`ls ${LIB_DIR}/*.jar`
-for i in ${JARS_LIST} ; do
-  CLASSPATH=${CLASSPATH}:${i}
+#wait for servie to write pid file
+INITIAL_WAIT=15
+
+# These options are used when micro service is starting 
+# Add whatever you want/need here... overrides application*.yml.
+SPRING_OPTS=" --server.port=0 --spring.profiles.active=dev ";
+
+JVM_OPTS=" -Xmx256M -Xms128M ";
+
+#Old processes ids
+declare -a OLD_PROCESSES_FILE=()
+
+#New processes ids
+declare -a NEW_PROCESSES_FILE=()
+
+#New processes ids
+declare -a NEW_SUCCESS_PROCESSES_FILE=()
+
+declare -a NEW_FAILED_PROCESSES_FILE=()
+
+declare -a TEMP_PROCESSES_FILE=()
+
+# Function to extract new processes ids.
+diff(){
+  awk 'BEGIN{RS=ORS=" "}
+       {NR==FNR?a[$0]++:a[$0]--}
+       END{for(k in a)if(a[k])print k}' <(echo -n "${!1}") <(echo -n "${!2}")
+}
+
+echo "Moving to ms home directory [ ${MS_HOME} ]"
+cd ${MS_HOME}
+
+for fname in $(find . -name "*.pid")
+    do
+    if [[ $fname == *"${APPLICATION_NAME}"* ]]; then
+            OLD_PROCESSES_FILE[${#OLD_PROCESSES_FILE[*]}]=${fname%.*} 
+        fi
+    done
+
+echo "Old Process instances."
+for ((i=0; i<${#OLD_PROCESSES_FILE[*]}; i++)); do echo "${OLD_PROCESSES_FILE[$i]}"; done
+
+for ((i=1; i<=${TOTAL_INSTANCE_TO_RUN}; i++)); 
+    do 
+        echo "nohup ./${JAR_NAME} $JVM_OPTS $SPRING_OPTS &"
+        nohup ./${JAR_NAME} $JVM_OPTS $SPRING_OPTS &
+        CmdExit=$?
+        sleep ${INITIAL_WAIT};
+            if [ "$CmdExit" = 0 ]
+            then
+                echo "Service [${JAR_NAME}] instance [${i}] starting .... "
+            else
+                echo "Faild to start Service name [${JAR_NAME}] instance [${i}] "
+            fi
+    done
+
+
+for fname in $(find . -name "*.pid")
+    do
+    if [[ $fname == *"${APPLICATION_NAME}"* ]]; then
+            NEW_PROCESSES_FILE[${#NEW_PROCESSES_FILE[*]}]=${fname%.*} 
+    fi
 done
 
-echo "adding config directory to the classpath"
-CLASSPATH=$CONFIG_DIR/$APPLICATION_TENANT:${CLASSPATH}
+# Extrating new instances
+for i in "${OLD_PROCESSES_FILE[@]}"; do
+    NEW_PROCESSES_FILE=(${NEW_PROCESSES_FILE[@]//*$i*})
+done
 
-JVM_PARAMETERS="-Xms1024m -Xmx1024m -XX:+DisableExplicitGC -XX:+UseConcMarkSweepGC -XX:ParallelGCThreads=2 -DBASE=$BASE"
-APP_PARAMETERS="launch-context.xml"
-
-#Retrieve JOB parameters
-JOB_NAME=$1
-shift 2
-JOB_PARAMETERS=$@
-
-if [ "$APPLICATION_TENANT" = "." ]; then
-	ALREADY_RUNNING=$(ps -eaf | grep java | grep $MAIN_CLASS | grep $JOB_NAME | grep -v grep | grep -v /bin/sh | wc -l)
-else
-	ALREADY_RUNNING=$(ps -eaf | grep java | grep $MAIN_CLASS | grep $JOB_NAME | grep $APPLICATION_TENANT | grep -v grep | grep -v /bin/sh | wc -l)
-fi
-
-if [ $ALREADY_RUNNING -gt 2 ]; then
-  echo "${MAIN_CLASS} already running, aborting..."
-  exit -1
-else
-  #echo "${JAVA_CMD} ${JVM_PARAMETERS} -classpath ${CLASSPATH} ${MAIN_CLASS} ${APP_PARAMETERS} $JOB_NAME $JOB_PARAMETERS"
-  ${JAVA_CMD} ${JVM_PARAMETERS} -classpath ${CLASSPATH} ${MAIN_CLASS} ${APP_PARAMETERS} $JOB_NAME $JOB_PARAMETERS
-fi
-
-EXIT_CODE=${?}
-
-if [ ${EXIT_CODE} -ne 0 ] ; then
-  echo "Error during execution. Program terminated with exit code: $EXIT_CODE"
-  exit ${EXIT_CODE};
-else
-  echo "Execution of ${MAIN_CLASS} completed successfully."
-fi
+echo "New Process instances."
+for ((i=0; i<${#NEW_PROCESSES_FILE[*]}; i++)); do echo "${NEW_PROCESSES_FILE[$i]}"; done
 
 
-
+echo "Validating the processes..."
+for ((i=0; i<${#NEW_PROCESSES_FILE[*]}; i++)); 
+     do 
+        time=0
+        flag=0
+        while [ $flag -le 0 ]
+        do
+              if  [ -e "${NEW_PROCESSES_FILE[$i]}.port" ] 
+              then
+                    port=0;
+                    read port<"${NEW_PROCESSES_FILE[$i]}.port"
+                    echo "Service instance [${NEW_PROCESSES_FILE[$i]}][${i}] started at port [${port}] "
+                    flag=1
+              elif [ $time -lt $STARTUP_WAIT ]  
+              then
+                    echo "Waiting for Service to Start.."
+                    time=$(( $time + 5 ));
+                    sleep 5
+              else
+                    echo "Service instance [${NEW_PROCESSES_FILE[$i]}][${i}] faild to start in [${STARTUP_WAIT}] seconds, Marking for termination."
+                    NEW_FAILED_PROCESSES_FILE[${#NEW_FAILED_PROCESSES_FILE[*]}]=${NEW_PROCESSES_FILE[$i]}
+                    flag=2;
+               fi
+        done    
+done
 
 
 
+if [[ ${NEW_FAILED_PROCESSES_FILE[@]} ]]; then
+        echo "Terminating the new process if extis"
+        for ((i=0; i<${#NEW_PROCESSES_FILE[*]}; i++)); do 
+            echo "Terminating service instance [${NEW_PROCESSES_FILE[$i]}][${i}] "
+                read pid<"${NEW_PROCESSES_FILE[$i]}.pid"
+                # Kill failed process
+                kill -9 $pid
+                CmdExit=$?
+                # wait for 5 second to ternimate
+                sleep 5
+                #remove pid file if not removed
+                if  [ -e "${NEW_PROCESSES_FILE[$i]}.pid" ] 
+                then
+                    rm -rf  "${NEW_PROCESSES_FILE[$i]}.pid"
+                fi
 
-
-
-
-
-
-#!/bin/sh
-JARFile="application.jar"
-PIDFile="application.pid"
-JVM_OPTS="-Xmx2g"
-SPRING_OPTS="--logging.file=application.log"
-
-function check_if_pid_file_exists {
-    if [ ! -f $PIDFile ]
-    then
- echo "PID file not found: $PIDFile"
+                if  [ -e "${NEW_PROCESSES_FILE[$i]}.port" ] 
+                then
+                    rm -rf  "${NEW_PROCESSES_FILE[$i]}.port"
+                fi
+                
+                if [ "$CmdExit" -eq "0" ]
+                then
+                    echo "Service instance [${NEW_PROCESSES_FILE[$i]}][${i}] sucessfully terminated. "
+                else
+                    echo "Service instance [${NEW_PROCESSES_FILE[$i]}][${i}] unable to terminate. "
+                fi
+        done 
         exit 1
-    fi
-} 
-
-function check_if_process_is_running {
- if ps -p $(print_process) > /dev/null
- then
-     return 0
- else
-     return 1
- fi
-}
-
-function print_process {
-    echo $(<"$PIDFile")
-}
-
-case "$1" in
-  status)
-    check_if_pid_file_exists
-    if check_if_process_is_running
-    then
-      echo $(print_process)" is running"
     else
-      echo "Process not running: $(print_process)"
-    fi
-    ;;
-  stop)
-    check_if_pid_file_exists
-    if ! check_if_process_is_running
-    then
-      echo "Process $(print_process) already stopped"
-      exit 0
-    fi
-    kill -TERM $(print_process)
-    echo -ne "Waiting for process to stop"
-    NOT_KILLED=1
-    for i in {1..20}; do
-      if check_if_process_is_running
-      then
-        echo -ne "."
-        sleep 1
-      else
-        NOT_KILLED=0
-      fi
-    done
-    echo
-    if [ $NOT_KILLED = 1 ]
-    then
-      echo "Cannot kill process $(print_process)"
-      exit 1
-    fi
-    echo "Process stopped"
-    ;;
-  start)
-    if [ -f $PIDFile ] && check_if_process_is_running
-    then
-      echo "Process $(print_process) already running"
-      exit 1
-    fi
-    nohup java $JVM_OPTS -jar $JARFile $SPRING_OPTS &
-    echo "Process started"
-    ;;
-  restart)
-    $0 stop
-    if [ $? = 1 ]
-    then
-      exit 1
-    fi
-    $0 start
-    ;;
-  *)
-    echo "Usage: $0 {start|stop|restart|status}"
-    exit 1
-esac
+        echo "Terminating the old process if extis"
+        for ((i=0; i<${#OLD_PROCESSES_FILE[*]}; i++)); do 
+            echo "Terminating service instance [${OLD_PROCESSES_FILE[$i]}][${i}] "
+                read pid<"${OLD_PROCESSES_FILE[$i]}.pid"
+                # Kill failed process
+                kill -9 $pid
+                CmdExit=$?
 
-exit 0
+                # wait for 5 second to ternimate
+                sleep 5
+                #remove pid file if not removed
+                if  [ -e "${OLD_PROCESSES_FILE[$i]}.pid" ] 
+                then
+                    rm -rf  "${OLD_PROCESSES_FILE[$i]}.pid"
+                fi
+
+                #remove port file if not removed
+                if  [ -e "${OLD_PROCESSES_FILE[$i]}.port" ] 
+                then
+                    rm -rf  "${OLD_PROCESSES_FILE[$i]}.port"
+                fi
+                
+                if [ "$CmdExit" -eq "0" ]
+                then
+                    echo "Service instance [${OLD_PROCESSES_FILE[$i]}][${i}] sucessfully terminated. "
+                else
+                    echo "Service instance [${OLD_PROCESSES_FILE[$i]}][${i}] unable to terminate. "
+                fi
+        done 
+        exit 0
+    fi
