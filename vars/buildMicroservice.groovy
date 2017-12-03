@@ -100,7 +100,7 @@ def call(body) {
 
             stage('Deploy') {
                 if (HOT_DEPLOY.toBoolean()) {
-                    
+                    hotDeploy("192.168.1.3",finalName);
                 } else {
                     currentBuild.result = "SUCCESS"
                 }
@@ -120,7 +120,6 @@ def call(body) {
                 } else {
                     currentBuild.result = "SUCCESS"
                 }
-
                 subjectText = "Build finished successfully!"
                 bodyText = "Build ${env.JOB_NAME} (${env.BUILD_NUMBER}) successfull!"
             }
