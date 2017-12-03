@@ -1,10 +1,7 @@
 #!/bin/bash
-WORKING_DIR=temp
-cd ../
-CUR_DIR=$(pwd)
-
-ReleaseNumber=$1
+workspaceDir=$1
+finalName=$1
 apacheLocation=$2
-echo "Archiving ${ReleaseNumber}.zip at location [ $apacheLocation ]"
+echo "Archiving ${finalName} at location [ $apacheLocation ]"
 
-mv  ${CUR_DIR}/${WORKING_DIR}/${ReleaseNumber}.zip $apacheLocation
+cp  ${workspaceDir}/build/${finalName} $apacheLocation

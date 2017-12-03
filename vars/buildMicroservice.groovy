@@ -61,7 +61,7 @@ def call(body) {
                     releaseNumber = "SNAPSHOT"
                 }
                 releaseNumber = "${releaseNumber}-${releaseBranch}"
-                finalName =  "${env.JOB_NAME}-${releaseNumber}-${releaseBranch}"
+                finalName =  "${env.JOB_NAME}-${releaseNumber}-${releaseBranch}.${distType}"
 
                 echo "***************************************************************************************************"
                 echo "Build initlizing for targetEnvironment [${targetEnvironment}] and releaseBranch [${releaseBranch}] "
@@ -71,21 +71,12 @@ def call(body) {
                     echo "Database Name [${databaseName}]"
                 }
                 echo "Release Number [${releaseNumber}] and Final Name [${finalName}]"
+                currentBuild.description = "${env.JOB_NAME}-${releaseNumber}-${releaseBranch} - ${COMMENT}"
                 echo "***************************************************************************************************"
             }
         
             stage("Build") {
                 echo "Build in progress..."
-                if (RELEASE.toBoolean()) {
-                    echo "Building a new RELEASE..."
-                    versionInfo = getNextVersion(env.JOB_NAME, workspaceDir)
-                    releaseNumber = versionInfo.version
-                } else {
-                    echo "Building a new SNAPSHOT..."
-                    releaseNumber = "SNAPSHOT"
-                }
-                releaseNumber = "${releaseNumber}-${releaseBranch}"
-                currentBuild.description = "${releaseNumber} - ${COMMENT}"
                 sh "chmod +x ${buildScriptDir}/build/build.sh"
                 sh "${buildScriptDir}/build/build.sh $workspaceDir $config.gradleModulePath $releaseNumber"
             }
@@ -93,7 +84,7 @@ def call(body) {
 
             stage("Upload Build") {
                 sh "chmod +x ${buildScriptDir}/build/archive.sh"
-                sh "${buildScriptDir}/build/archive.sh $releaseNumber $apacheLocation"
+                sh "${buildScriptDir}/build/archive.sh $workspaceDir $finalName $apacheLocation"
             }
 
             stage("Execute DB Script") {
