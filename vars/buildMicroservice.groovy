@@ -116,7 +116,7 @@ def call(body) {
 
             stage("Finalize") {
                 if (RELEASE.toBoolean()) {
-                    currentBuild.description = getBuildDescription(ReleaseNumber, Comment, pom.groupId, pom.artifactId, packageType, pom.version)
+                    currentBuild.description = getBuildDescription(currentBuild.description,finalName)
                 } else {
                     currentBuild.result = "SUCCESS"
                 }
