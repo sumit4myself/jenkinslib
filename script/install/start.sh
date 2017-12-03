@@ -1,6 +1,5 @@
 #!/bin/bash
 
-
 # micro service name 
 APPLICATION_NAME=admin-service
 
@@ -12,7 +11,7 @@ JAR_NAME=admin-service-1.0.jar
 TOTAL_INSTANCE_TO_RUN=2
 
 # Where micro service jar file sits?
-MS_HOME=/Users/SUMIT/GIT/EsyCation/build
+MS_HOME=/opt/jars
 
 # Which username we should run as.
 RUNASUSER=root # <-- EDIT THIS LINE, 
