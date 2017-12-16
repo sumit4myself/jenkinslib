@@ -1,14 +1,17 @@
 #!/bin/bash
 
 # micro service name 
-APPLICATION_NAME=admin-service
+APPLICATION_NAME=$1
 
 # Actual file name of Micro Service (jar), 
-JAR_NAME=admin-service-1.0.jar
+JAR_NAME=$2
 # ^^^ that should relative to MS_HOME directory.
 
 # Total instance to run
-TOTAL_INSTANCE_TO_RUN=2
+TOTAL_INSTANCE_TO_RUN=$3
+
+# Total instance to run
+PROFILES=$4
 
 # Where micro service jar file sits?
 MS_HOME=/opt/build
@@ -25,7 +28,7 @@ INITIAL_WAIT=15
 
 # These options are used when micro service is starting 
 # Add whatever you want/need here... overrides application*.yml.
-SPRING_OPTS=" --server.port=0 --spring.profiles.active=dev ";
+SPRING_OPTS=" --server.port=0 --spring.profiles.active=${PROFILES} ";
 
 JVM_OPTS=" -Xmx256M -Xms128M ";
 
@@ -65,6 +68,7 @@ for ((i=0; i<${#OLD_PROCESSES_FILE[*]}; i++)); do echo "${OLD_PROCESSES_FILE[$i]
 for ((i=1; i<=${TOTAL_INSTANCE_TO_RUN}; i++)); 
     do 
         echo "nohup ./${JAR_NAME} $JVM_OPTS $SPRING_OPTS &"
+        chmod 755 ${JAR_NAME}
         nohup ./${JAR_NAME} $JVM_OPTS $SPRING_OPTS &
         CmdExit=$?
         sleep ${INITIAL_WAIT};

@@ -25,9 +25,12 @@ def call(body) {
             def releaseNumber
             def distType = "jar"
             def hasDatabase = false
-            def databaseName = "";
+            def databaseName = ""
             def finalName
-            def incrementalRange;
+            def incrementalRange
+            def profiles="cloud"
+            def totalInstanceToRun=1
+            def serverIp="192.168.1.3" 
 
             stage("Checkout") {
               echo "Project Checkout in progress..."
@@ -91,7 +94,7 @@ def call(body) {
 
             stage('Deploy') {
                 if (HOT_DEPLOY.toBoolean()) {
-                    hotDeploy("192.168.1.3",buildScriptDir,finalName);
+                    hotDeploy(serverIp,buildScriptDir,env.JOB_NAME,finalName,totalInstanceToRun,profiles);
                 } else {
                     currentBuild.result = "SUCCESS"
                 }
