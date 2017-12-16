@@ -21,7 +21,7 @@ RUNASUSER=jenkins # <-- EDIT THIS LINE,
 # if port number for spring boot is < 1024 it needs root perm.
 
 # wait before issuing 
-STARTUP_WAIT=20
+STARTUP_WAIT=60
 
 #wait for servie to write pid file
 INITIAL_WAIT=15
