@@ -91,7 +91,7 @@ def call(body) {
 
             stage('Deploy') {
                 if (HOT_DEPLOY.toBoolean()) {
-                    hotDeploy("192.168.1.3",finalName);
+                    hotDeploy("192.168.1.3",buildScriptDir,finalName);
                 } else {
                     currentBuild.result = "SUCCESS"
                 }
