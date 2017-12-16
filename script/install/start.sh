@@ -11,7 +11,7 @@ JAR_NAME=admin-service-1.0.jar
 TOTAL_INSTANCE_TO_RUN=2
 
 # Where micro service jar file sits?
-MS_HOME=/opt/jars
+MS_HOME=/opt/build
 
 # Which username we should run as.
 RUNASUSER=root # <-- EDIT THIS LINE, 

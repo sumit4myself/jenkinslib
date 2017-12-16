@@ -6,5 +6,5 @@ if [  -z "fileName" ]
     exit 1
 fi
 echo "Downloading file [$fileName]"
-cd /opt/jars/
+cd /opt/build/
 wget -O /dev/null http://build.educoresystems.com/builds/$fileName
