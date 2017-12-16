@@ -14,7 +14,6 @@ def call(body) {
         def gitCredentials = "git_user_sumit4myself";
         def workspaceDir = "EsyCation"
     
-        def dbFullScriptDir = "jenkinslib/db";
         def buildScriptDir = "jenkinslib/script";
         def gradleModulePath = "";
         def modulePath = "";
@@ -89,14 +88,6 @@ def call(body) {
                 sh "chmod +x ${buildScriptDir}/build/archive.sh"
                 sh "${buildScriptDir}/build/archive.sh $workspaceDir $finalName $apacheLocation"
             }
-
-            stage("Execute DB Script") {
-                if(hasDatabase){
-                    echo "Database Name [${databaseName}]"
-                } else {
-                    currentBuild.result = "SUCCESS"
-                }
-            }        
 
             stage('Deploy') {
                 if (HOT_DEPLOY.toBoolean()) {
