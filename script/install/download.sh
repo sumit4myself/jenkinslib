@@ -6,5 +6,4 @@ if [  -z "fileName" ]
     exit 1
 fi
 echo "Downloading file [$fileName]"
-cd /opt/build/
-wget -O /dev/null http://build.educoresystems.com/$fileName
+wget http://build.educoresystems.com/$fileName -P /opt/build/
