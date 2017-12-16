@@ -14,7 +14,7 @@ TOTAL_INSTANCE_TO_RUN=2
 MS_HOME=/opt/build
 
 # Which username we should run as.
-RUNASUSER=root # <-- EDIT THIS LINE, 
+RUNASUSER=jenkins # <-- EDIT THIS LINE, 
 # if port number for spring boot is < 1024 it needs root perm.
 
 # wait before issuing 
