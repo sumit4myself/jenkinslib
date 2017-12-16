@@ -1,7 +1,4 @@
 def call(server, fileName) {
-    sshagent(['educoresystems.in-id_rsa']) {
-       
-
-        ssh-add -L
-    }
+        sh "ssh jenkins@${server} './download.sh ${fileName}'"
+        sh "ssh jenkins@${server} './start.sh ${fileName}'"
 }
