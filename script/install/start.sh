@@ -68,8 +68,8 @@ for ((i=0; i<${#OLD_PROCESSES_FILE[*]}; i++)); do echo "${OLD_PROCESSES_FILE[$i]
 for ((i=1; i<=${TOTAL_INSTANCE_TO_RUN}; i++)); 
     do 
         echo "nohup ./${JAR_NAME} $JVM_OPTS $SPRING_OPTS &"
-        chmod 755 ${JAR_NAME}
-        nohup ./${JAR_NAME} $JVM_OPTS $SPRING_OPTS &
+        #chmod 755 ${JAR_NAME}
+        nohup java -jar $JVM_OPTS ${JAR_NAME}  $SPRING_OPTS &
         CmdExit=$?
         sleep ${INITIAL_WAIT};
             if [ "$CmdExit" = 0 ]
