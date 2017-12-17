@@ -20,17 +20,14 @@ def call(body) {
         def apacheLocation = "/opt/build/";
     
         try {
-
             def versionInfo
             def releaseNumber
-            def distType = "jar"
-            def hasDatabase = false
-            def databaseName = ""
+            def distType = "jar" 
             def finalName
             def incrementalRange
             def profiles="cloud"
             def totalInstanceToRun=1
-            def serverIp="192.168.1.3" 
+            def serverIp 
 
             stage("Checkout") {
               echo "Project Checkout in progress..."
@@ -47,18 +44,9 @@ def call(body) {
                 targetEnvironment = "${TARGET_ENVIRONMENT}";
                 array = "${GIT_BRANCH}".split("/");
                 releaseBranch = "${array[array.length-1]}";
-                hasDatabase = config.hasDatabase;
-                databaseName = config.databaseName;
                 if(config.workspaceDir != null){
                     workspaceDir = config.workspaceDir
                 }
-
-                if(targetEnvironment == "DEV"){
-                    databaseName = "dev_"+databaseName;
-                }else if(targetEnvironment == "UAT"){
-                    databaseName = "uat_"+databaseName;
-                }
-
                 if (RELEASE.toBoolean()) {
                     versionInfo = getNextVersion(env.JOB_NAME, workspaceDir)
                     releaseNumber = versionInfo.version
@@ -67,14 +55,19 @@ def call(body) {
                 }
                 releaseNumber = "${releaseNumber}-${releaseBranch}"
                 finalName =  "${env.JOB_NAME}-${releaseNumber}.${distType}"
+                
+                if(targetEnvironment == "DEV"){
+                    serverIp = DEV_SERVER_IP
+                }else if(targetEnvironment == "UAT"){
+                    serverIp = UAT_SERVER_IP
+                }else{
+                    serverIp = PROD_SERVER_IP
+                }
 
                 echo "***************************************************************************************************"
-                echo "Build initlizing for targetEnvironment [${targetEnvironment}] and releaseBranch [${releaseBranch}] "
+                echo "Build initlizing for targetEnvironment [${targetEnvironment}] IP [${serverIp}] and releaseBranch [${releaseBranch}] "
                 echo "ModulePath [${config.modulePath}] "
                 echo "Gradle ModulePath [${config.gradleModulePath}] "
-                if(hasDatabase){
-                    echo "Database Name [${databaseName}]"
-                }
                 echo "Release Number [${releaseNumber}] and Final Name [${finalName}]"
                 currentBuild.description = "${env.JOB_NAME}-${releaseNumber}-${releaseBranch} - ${COMMENT}"
                 echo "***************************************************************************************************"
