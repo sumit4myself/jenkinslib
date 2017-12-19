@@ -117,7 +117,7 @@ def call(body) {
             subjectText = "Build finished unsuccessfully!"
             bodyText = "It appears that ${env.BUILD_URL} is failing, somebody should do something about that!\n Please check console log."
         } finally {
-           // sendEmail(subjectText, bodyText)
+           sendEmail(subjectText, bodyText)
         }
     }
 }
